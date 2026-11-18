@@ -7,7 +7,8 @@ BOT = '''([sec, pa, ha, hold0]) => { const L=__lg; L.setSector(sec); L.newRun();
     for (const c of lv.chunks) if (c.state!=='ok' && c.x0-x>pa-1 && c.x0-x<pa+3) need=true;
     for (const o of lv.objs){ if(o.dead) continue; const dx=o.x-x;
       if (o.enemy && dx>4 && dx<34) enemy=true;
-      if (o.hazard && !o.enemy && dx>ha && dx<ha+1.8) need=true; }
+      if (o.hazard && !o.enemy && dx>ha && dx<ha+1.8) need=true;
+      if (o.enemy && !o.fly && (o.armored || (o.t==='snake'||o.t==='tumble')) && dx>ha+3 && dx<ha+6) need=true; }
     const falling = !st.P.ground && st.P.vy > 0 && st.P.airJumps > 0 && lv.surf(x+3)===999 && lv.surf(x+6)===999;
     if ((need && st.P.ground && hold<=0) || falling){ L.press('jump', false); L.press('jump',true); hold=hold0; } else { hold--; L.press('jump', hold>0); }
     L.press('shoot', enemy && i%8===0);
@@ -17,6 +18,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); pg = await b.new_page(viewport={'width':844,'height':390})
         errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)))
+        await pg.add_init_script("for (let i=1;i<=9;i++) localStorage.setItem('ar_stars_'+i,'7'); localStorage.setItem('ar_unlocked','8')")
         await pg.goto('file:///home/claude/ascii-run/index.html'); await pg.wait_for_timeout(800)
         await pg.evaluate('__lg.freeze(true)')
         for sec in [int(a) for a in sys.argv[1:]] or [0,1]:
