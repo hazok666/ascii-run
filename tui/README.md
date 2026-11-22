@@ -13,3 +13,5 @@ Tangenter: SPACE / ↑ / W / Z = hoppa · X / F / Enter / → = kasta · P / Esc
 Meny: ↑ ↓ + Enter. Sparas i ~/.ascii-run.json.
 
 `tui-src.js` är körarens källkod. `ascii-run.js` är den + spelet i en fil.
+
+Byggs tillsammans med webbversionen (samma spelkod) av build.py – de kan inte hamna olika.
