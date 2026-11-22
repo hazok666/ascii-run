@@ -91,7 +91,7 @@ const sandbox = {
     fonts: { add() {} }, body: { appendChild() {} }, documentElement: {}, addEventListener() {}, hidden: false, fullscreenEnabled: false,
   },
 };
-sandbox.window = sandbox; sandbox.self = sandbox; sandbox.globalThis = sandbox;
+sandbox.__NO_BIG = true; sandbox.window = sandbox; sandbox.self = sandbox; sandbox.globalThis = sandbox;
 // keyboard wording instead of touch wording
 const SRC = GAME_SRC.split("'JUMP', input.jump").join("'SPACE', input.jump").split("'THROW', input.shoot").join("'X', input.shoot").split('TAP TO ').join('SPACE: ');
 vm.createContext(sandbox);
