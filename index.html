@@ -274,7 +274,7 @@ const mkLate = o => d => [
   ['hopper', o.hopper ?? 1.6], ['diver', o.diver ?? 1.4], ['turret', o.turret ?? 1.3], ['dropper', o.dropper ?? 1.3],
   ['star', 0.5], ['speed', 0.8], ['w_spread', 0.7], ['w_pierce', 0.6], ['w_bomb', 0.6],
   ['spring', o.spring ?? 1], ['snake', o.snake ?? 2], ['cactus', o.cactus ?? 2], ['tumble', o.tumble ?? 2], ['bat', o.bat ?? 2], ['spikes', 1], ['pit', 2], ['gems', 1],
-  ['tunnel', o.tunnel ?? 1.3], ['sky', o.sky ?? 2.6], ['plats', o.plats ?? 0], ['wind', o.wind ?? 0], ['fragile', o.fragile ?? 0], ['beltFast', o.belt ?? 0], ['beltSlow', (o.belt ?? 0) * 0.7],
+  ['tunnel', o.tunnel ?? 1.3], ['sky', o.sky ?? 2.6], ['plats', o.plats ?? 0], ['wind', o.wind ?? 0], ['fragile', o.fragile ?? 0], ['popup', o.popup ?? 0], ['beltFast', o.belt ?? 0], ['beltSlow', (o.belt ?? 0) * 0.7],
   ['cactusSnake', 1.5 * d], ['batPair', 1.2 * d], ['tumbleCactus', 1.2 * d], ['highGems', 1],
 ].filter(e => e[1] > 0);
 const mkSec = (name, word, fx, seed, len, bg, speed, gap, o) => ({
@@ -304,7 +304,7 @@ const NEW_SECTORS = [
     w: { plats: 1.5, sky: 3, belt: 1 }, save: true, copyFx: true }),
   mkSec('SETUP.EXE', 'RUN', 'RUN', 5606, 2400, 'exe', 1.12, 0.82, { st: ['PROCESS .............. RUNNING'], radio: ['e_1', 'pa_2', 'pa_3'], watch: 'WATCH FOR:  [!]  [ X ]  {!!!}  ERR',
     terrain: [2.4, 21, 1.6, 9, 1.2, 49], soil: { top: 35, l1: '#%#X#', l2: '%X#0', deep: '#%', deepP: 0.5, light: '0%#X' }, look: 'word', words: ['OK', 'Cancel', 'Retry', 'Abort', 'Yes', 'No', 'Close'], inv: true,
-    w: { fragile: 2, belt: 1.5, sky: 2.6, plats: 1, hopper: 2, turret: 1.8 }, save: true, copyFx: true }),
+    w: { fragile: 3, belt: 1.2, sky: 1.2, plats: 0.6, popup: 2.4, hopper: 2, turret: 1.8 }, save: true, copyFx: true }),
 ];
 
 const SECTORS = [
@@ -598,6 +598,7 @@ function buildLevel() {
     else if (pick === 'spring') { ev.push([x, 'spring']); extra = 6; }
     else if (pick === 'wind') { ev.push([x, 'wind', 24]); extra = 24; }
     else if (pick === 'plats') { ev.push([x, 'plats', 28]); extra = 28; }
+    else if (pick === 'popup') { ev.push([x, 'popup', 50]); extra = 50; }
     else if (pick === 'sky') { const sp = skySpec(sec, d); ev.push([x, 'sky', sp.w, sp]); extra = sp.w; }
     else if (pick === 'tunnel') { ev.push([x, 'tunnel', 44], [x + 17, 'snake'], [x + 33, 'cactus']); extra = 46; }
     else if (pick === 'caret') { ev.push([x, 'caret', 0], [x + 10, 'caret', 0.5], [x + 20, 'caret', 0]); extra = 20; }
@@ -658,6 +659,15 @@ function buildLevel() {
       for (let i = x; i < x + w; i++) { h[i] = NONE; lock[i] = true; }
       for (let i = x - 8; i <= x + w + 1; i++) wind[i] = row + 2;
       [7, 7, 6, 5, 4].forEach((up, i) => objs.push({ t: 'gem', x: x + 2 + i * 5, top: row - up }));
+    } else if (t === 'popup') {      // EXE: a cascade of error windows over a pit; each closes a moment after you land on it
+      const row = h[x - 5];
+      flat(x - 5, x - 1, row); flat(x + w, x + w + 5, row);
+      for (let i = x; i < x + w; i++) { h[i] = NONE; lock[i] = true; }
+      [[2, 2, 'Error'], [17, 4, 'Warning'], [32, 2, 'Abort?']].forEach(([dx, up, lab], i) => {
+        const x0 = x + dx;
+        objs.push({ t: 'plat', win: true, on: false, closed: false, stand: 0, label: lab, x0, x: x0, top0: row - up, top: row - up, w: 13, h: 1, ax: 0, ay: 0, psp: 1, ph: 0, look: 'win' });
+        objs.push({ t: 'gem', x: x0 + 5, top: row - up - 4 });
+      });
     } else if (t === 'plats') {     // moving platforms over a wide pit
       const row = h[x - 5];
       flat(x - 5, x - 1, row); flat(x + w, x + w + 4, row);
@@ -1359,7 +1369,7 @@ function caretOn(o) { return Math.floor((t + (o.ph || 0)) * 1.7) % 2 === 0; }
 function platSurf(prevY) {      // moving platforms: solid from above, you can jump up through them
   const x0 = px() + 2, x1 = px() + 5, tol = P.ground ? 1.5 : 0.7;
   let s = NONE;
-  for (const o of level.objs) if (o.t === 'plat' && o.x < x1 && o.x + o.w > x0 && o.top >= prevY - tol && o.x > camX - 12 && o.x < camX + COLS + 8) s = Math.min(s, o.top);
+  for (const o of level.objs) if (o.t === 'plat' && !(o.win && (!o.on || o.closed)) && o.x < x1 && o.x + o.w > x0 && o.top >= prevY - tol && o.x > camX - 12 && o.x < camX + COLS + 8) s = Math.min(s, o.top);
   return s;
 }
 function bombBlast(bx, by) {            // the bomb: everything close dies, even the armored
@@ -1438,7 +1448,7 @@ function update(dt) {
   }
   let mbs = 1;
   if (level.mb && !level.mb.dead) mbs = Math.max(0.12, Math.min(1, (level.mb.x - (camX + PCOL + 3) - 5) / (level.sec.id <= 2 ? 75 : 50)));
-  camX += SPEED * (level.sec.speed || 1) * P.mult * (P.boost > 0 ? 1.45 : 1) * mbs * dt;
+  camX += SPEED * (level.sec.speed || 1) * (level.sec.bg === 'exe' ? 1 + 0.14 * Math.min(1, camX / level.TEMPLE_X) : 1) * P.mult * (P.boost > 0 ? 1.45 : 1) * mbs * dt;
   const X = px();
 
   // jump with coyote time, buffer and variable height
@@ -1533,6 +1543,15 @@ function update(dt) {
   for (const o of level.objs) {
     if (o.dead) continue;
     if (o.x < camX - 10 || o.x > camX + COLS + 4) continue;
+    if (o.t === 'plat' && o.win) {   // error window: pops up ahead of you, closes ~1 s after you land on it
+      if (!o.on && !o.closed && o.x - camX < COLS - 14) { o.on = true; o.t0 = t; }
+      if (o.on && !o.closed) {
+        const onIt = P.ground && px() + 2 < o.x + o.w && px() + 5 > o.x && Math.abs(P.y - o.top) < 1.3;
+        if (onIt) o.stand += dt;
+        if (o.stand > 1.2) { o.closed = true; o.tc = t; sfx('crackle'); }
+      }
+      continue;
+    }
     if (o.t === 'plat') {   // moving platforms: whole-cell positions, towards you and away from you
       o.x = Math.round(o.x0 + o.ax * Math.sin(t * o.psp + o.ph));
       o.top = Math.round(o.top0 + o.ay * Math.sin(t * o.psp * 0.8 + o.ph * 1.3));
@@ -2521,6 +2540,21 @@ const DOC_MID = [
   { x: 100, y: 21, art: ['the worm is hungry~v~v~v~v'] },
   { x: 20, y: 22, art: ['  ~v~v~v~v  '] },
 ];
+function wormTipArt() {       // only the tip of THE WORM's tail, rising out of the ground behind the scenery (never the head)
+  const W = 74, H = 22, g = Array.from({ length: H }, () => Array(W).fill(' ')), L = 'etaoinshrdl#%';
+  let x = 3, y = H - 1, n = 90;
+  for (let i = 0; i < n; i++) {
+    const u = i / n, ang = -Math.PI / 2 + 3.3 * Math.pow(u, 1.15), rad = 2.1 * (1 - u) + 0.35;
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -6; dx <= 6; dx++) {
+      if ((dx / 2) * (dx / 2) + dy * dy > rad * rad) continue;
+      const cx = Math.round(x) + dx, cy = Math.round(y) + dy;
+      if (cx >= 0 && cx < W && cy >= 0 && cy < H) g[cy][cx] = u > 0.85 ? '.' : L[(cx * 7 + cy * 3 + i) % L.length];
+    }
+    x += Math.cos(ang) * 1.9; y += Math.sin(ang) * 0.95;
+  }
+  return g.map(r => r.join('').replace(/\s+$/, ''));
+}
+const WORM_TIP = wormTipArt();
 const TI_FAR = [
   { x: 6, y: 5, art: ['.:.'] }, { x: 28, y: 13, art: ['* . *'] }, { x: 50, y: 8, art: ['0 1 1 0 1'] }, { x: 74, y: 18, art: ['. : .'] },
   { x: 96, y: 6, art: ['1 0 1'] }, { x: 112, y: 15, art: ['.:.:.'] }, { x: 18, y: 20, art: ['0 1 0'] }, { x: 60, y: 3, art: ['. . .'] },
@@ -2668,9 +2702,12 @@ const FILEBG = {
       { x: 14, y: 8, art: ['+--------------------+', '| Warning        [X] |', '| Are you sure?      |', '|  [ Yes ]  [ No ]   |', '+--------------------+'] },
       { x: 76, y: 6, art: ['+----------------------+', '| Installing...    [X] |', '| [#########.....] 61% |', '+----------------------+'] },
     ], 150, 0.7);
+    artLayer('exeW', 0.22, [{ x: 70, y: 11, bold: true, art: WORM_TIP }], 260, 0.5);
     artLayer('exeM', 0.36, [
-      { x: 8, y: 17, art: ['.---.', ' \\ / ', '  X  ', ' / \\ ', "'---'"] }, { x: 34, y: 12, art: ['[ OK ]'] }, { x: 52, y: 19, art: ['[###.......] 30%'] },
-      { x: 84, y: 15, art: ['NOT RESPONDING'] }, { x: 108, y: 11, art: ['+----+', '| !  |', '+----+'] },
+      { x: 8, y: 17, solid: true, art: ['.---.', ' \\ / ', '  X  ', ' / \\ ', "'---'"] }, { x: 34, y: 12, solid: true, art: ['[ OK ]'] }, { x: 52, y: 19, solid: true, art: ['[###.......] 30%'] },
+      { x: 84, y: 15, solid: true, art: ['NOT RESPONDING'] }, { x: 108, y: 11, solid: true, art: ['+----+', '| !  |', '+----+'] },
+      { x: 64, y: 8, solid: true, art: ['+------------------+', '| Fatal error  [X] |', '|------------------|', '| 0x0000007B       |', '| [ OK ]           |', '+------------------+'] },
+      { x: 20, y: 5, solid: true, art: ['+-----------+', '| Delete?   |', '| [Y] [Y]   |', '+-----------+'] },
     ], 130, 2.2);
     bgLayer(0.8, rainExe);
   },
@@ -3141,7 +3178,7 @@ function drawWorld() {
       const fi = level.frag[wx];
       if (fi >= 0) {            // loose sand bridge: two thin rows over the pit, flickering when it cracks
         const ck = level.chunks[fi], cr = ck.state === 'crack';
-        const top = cr ? (hash(wx, Math.floor(t * 20)) < 0.5 ? 46 : 44) : 58;     // ':' intact, '.' ',' cracking
+        const top = level.sec.bg === 'exe' ? [35, 37, 88, 48][Math.floor(hash(wx, Math.floor(t * (cr ? 24 : 3))) * 4)] : cr ? (hash(wx, Math.floor(t * 20)) < 0.5 ? 46 : 44) : 58;     // ':' intact, '.' ',' cracking
         glyph(top, sx, s * CH, 1);
         if (!cr || hash(wx + 3, Math.floor(t * 20)) < 0.5) glyph(hash(wx, 5) < 0.5 ? 39 : 46, sx, (s + 1) * CH, 0);
         continue;
@@ -3227,6 +3264,18 @@ function drawObjects() {
       const br = Math.floor(t * 3) % 2 ? '[ ]' : '< >';
       text(br, sx, sy, 1, false);
       glyph(o.ch.charCodeAt(0), sx + CW, sy, 3);
+      continue;
+    }
+    if (o.t === 'plat' && o.win) {
+      if (!o.on || (o.closed && t - o.tc > 0.4)) continue;
+      const age = t - o.t0, closing = o.closed || o.stand > 0.7;
+      if ((age < 0.35 || closing) && Math.floor(t * 16) % 2) continue;
+      const col = Math.round(o.x - camX), W = o.w, tl = ' ' + o.label;
+      gfill(col, o.top, W, 4);
+      gtext('[' + tl.padEnd(W - 5).slice(0, W - 5) + '[X]' + ']', col, o.top, 1);
+      gtext('|' + ' '.repeat(W - 2) + '|', col, o.top + 1, 0);
+      gtext('| ' + (o.label === 'Error' ? '0x7B  ' : o.label === 'Warning' ? 'Sure?  ' : 'Quit?  ').slice(0, W - 2).padEnd(W - 2) + '|', col, o.top + 2, 0);
+      gtext('+' + '-'.repeat(W - 2) + '+', col, o.top + 3, 0);
       continue;
     }
     if (o.t === 'plat') {
@@ -3330,8 +3379,9 @@ function drawHUD() {
   gfill(COLS - gems.length - 3, 0, gems.length + 2, 1); gtext(gems, COLS - gems.length - 2, 0, 1);
   if (!level.boss) {
     const n = 24, p = Math.min(1, px() / level.IDOL_X), k = Math.floor(p * n);
-    const bar = '[' + '='.repeat(k) + '>' + '.'.repeat(n - k) + '@]';
-    gfill(center(bar) - 1, 0, bar.length + 2, 1); gtext(bar, center(bar), 0, 0);
+    let bar = '[' + '='.repeat(k) + '>' + '.'.repeat(n - k) + '@]';
+    if (level.sec.bg === 'exe') { const pc = Math.min(99, Math.floor(p * 100)); bar = 'DELETING SETUP.EXE [' + '#'.repeat(k) + '.'.repeat(n - k) + '] ' + pc + '%'; }   // the file is being erased while you run through it
+    gfill(center(bar) - 1, 0, bar.length + 2, 1); gtext(bar, center(bar), 0, level.sec.bg === 'exe' && p > 0.88 && Math.floor(t * 4) % 2 ? 1 : 0);
   }
 }
 
