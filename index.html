@@ -1700,6 +1700,14 @@ function wormCells(B) {
       else if (j % 2 === 1 || tail) ch = SC[(k + j) % 3];
       else ch = "\\_/"[(k + 1 + j) % 3];
       cells.push([col, row, ch, 1, ((k + j) % 6 < 3) ? 2 : 3]);
+      if (k === 0) {            // the neck: the body runs on to the last glyph of the skull in this row, glyph to glyph
+        let e = -1; for (let q = BODY_X - 1; q >= 0; q--) if (SKULL[BASE_ROW - SK_R <= row ? row - (BASE_ROW - SK_R) : 0][q] !== ' ') { e = q; break; }
+        if (row < BASE_ROW - SK_R) e = BODY_X - 1;
+        for (let q = e + 1; q < BODY_X; q++) {
+          const nj = row - top, c2 = SC[(q + nj + 3) % 3];
+          cells.push([hc + q, row, nj === 0 ? '_' : (nj % 2 ? c2 : "\\_/"[(q + nj) % 3]), 3, ((q + nj) % 6 < 3) ? 2 : 3]);
+        }
+      }
     }
   }
   return cells;
@@ -1754,7 +1762,7 @@ function bossUpdate(dt) {
   // shots against the cells (skull counts double); bullets pass under the arch
   B.cells = wormCells(B);
   const occ = new Map();
-  for (const c of B.cells) occ.set(c[0] * 64 + c[1], c[0] < Math.round(B.hc) + BODY_X ? 2 : 1);
+  for (const c of B.cells) occ.set(c[0] * 64 + c[1], c[3] === 0 ? 2 : 1);
   for (const b of bullets) {
     if (b.hit) continue;
     const col = Math.round(b.x - camX), row = Math.round(b.y);
