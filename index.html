@@ -2261,7 +2261,7 @@ const MB = {
     art: mbBox(32, ['', '\\                  /', 'EEEEEEE', '', 'MMMMMMM', '', 'D   E   L', '', '~ README.TXT is corrupt ~', '', '']).concat(['[Q][W][E][R][T][Y][U][I][O][P]']) },
   xls: { name: 'THE DOLLAR', hp: 30, shot: () => ['42', '#N', '$9', '=7', '0/'][Math.floor(Math.random() * 5)], art: DOLLAR_ART },
   jpg: { name: 'THE OCTOPUS', hp: 28, shot: () => ['(@)', '~o~'][Math.floor(Math.random() * 2)], frames: OCT_FR, art: OCT_FR[0], noArms: true },
-  doc: { name: 'THE PAPER CLIP', hp: 28, shot: () => ['(~)', '[~]'][Math.floor(Math.random() * 2)], frames: CLIP_FR, art: CLIP_FR[0], noArms: true },
+  doc: { name: 'THE STAPLER', hp: 28, shot: () => '[=]', art: mbStapler() },
   ppt: { name: 'THE PIE CHART', hp: 30, shot: () => '/\\', art: PIE_ART },
   pdf: { name: 'THE PADLOCK', hp: 30, shot: () => ['[#]', '[*]'][Math.floor(Math.random() * 2)],
     art: ['         .---------.', '        /  .-----.  \\', '       |  /       \\  |', '       | |         | |', '       | |         | |'].concat(mbBox(30, ['', 'EEEEEEE', '', 'MMMMMMM', '', 'CONFIDENTIAL', '', 'ACCESS DENIED', ''])) },
